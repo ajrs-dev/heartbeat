@@ -7,6 +7,9 @@ import { FakeEventSource } from '../test/setup';
 import { bucket, healthyBuckets, monitor } from '../test/fixtures';
 import { MonitorPage } from './MonitorPage';
 
+const auth = vi.hoisted(() => ({ demo: false }));
+vi.mock('../auth', () => ({ useAuth: () => ({ demo: auth.demo }) }));
+
 const fns = vi.hoisted(() => ({
   monitor: vi.fn(),
   stats: vi.fn(),
@@ -32,6 +35,7 @@ function renderPage() {
 }
 
 beforeEach(() => {
+  auth.demo = false;
   for (const fn of Object.values(fns)) fn.mockReset();
   fns.monitor.mockResolvedValue(monitor());
   fns.stats.mockResolvedValue({ last24h: window(99.5, 1440), last7d: window(98.25, 10080), last30d: window(100, 43200) });
@@ -146,6 +150,16 @@ describe('MonitorPage', () => {
       await vi.advanceTimersByTimeAsync(1000);
     });
     await waitFor(() => expect(fns.checks.mock.calls.length).toBe(initialCalls + 1));
+  });
+
+  it('hides pause, edit and delete in the read-only public demo, but still shows the data', async () => {
+    auth.demo = true;
+    renderPage();
+    expect(await screen.findByRole('heading', { name: 'Marketing site' })).toBeInTheDocument();
+    for (const name of ['Pause', 'Resume', 'Edit', 'Delete']) {
+      expect(screen.queryByRole('button', { name })).not.toBeInTheDocument();
+    }
+    expect(screen.getByText('99.50%')).toBeInTheDocument();
   });
 
   it('shows "Monitor not found" for a 404', async () => {

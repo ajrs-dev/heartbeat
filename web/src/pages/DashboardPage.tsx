@@ -4,6 +4,7 @@ import { api } from '../api';
 import { MonitorDialog } from '../components/MonitorDialog';
 import { StatusPill } from '../components/StatusPill';
 import { UptimeBar } from '../components/UptimeBar';
+import { useAuth } from '../auth';
 import { useLiveUpdates } from '../hooks/useLiveUpdates';
 import { useNow } from '../hooks/useNow';
 import { formatInterval, formatMs, formatUptime, hostOf, timeAgo } from '../lib/format';
@@ -11,6 +12,7 @@ import type { MonitorOverview } from '../types';
 
 export function DashboardPage() {
   const navigate = useNavigate();
+  const { demo } = useAuth();
   const now = useNow();
   const [monitors, setMonitors] = useState<MonitorOverview[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -71,18 +73,22 @@ export function DashboardPage() {
             {live ? 'Live updates on' : 'Reconnecting…'}
           </p>
         </div>
-        <button className="btn primary" onClick={() => setAdding(true)}>
-          + Add monitor
-        </button>
+        {!demo && (
+          <button className="btn primary" onClick={() => setAdding(true)}>
+            + Add monitor
+          </button>
+        )}
       </div>
 
       {monitors.length === 0 ? (
         <div className="card empty">
           <h2>Add your first monitor</h2>
           <p className="muted">Paste a URL and Heartbeat will check it on a schedule, track uptime and response time, and open an incident if it goes down.</p>
-          <button className="btn primary" onClick={() => setAdding(true)}>
-            + Add monitor
-          </button>
+          {!demo && (
+            <button className="btn primary" onClick={() => setAdding(true)}>
+              + Add monitor
+            </button>
+          )}
         </div>
       ) : (
         <ul className="list">

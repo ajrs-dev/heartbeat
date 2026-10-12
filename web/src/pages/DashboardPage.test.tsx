@@ -6,7 +6,8 @@ import { FakeEventSource } from '../test/setup';
 import { monitor, overview } from '../test/fixtures';
 import { DashboardPage } from './DashboardPage';
 
-const { overviewFn, createMonitor } = vi.hoisted(() => ({ overviewFn: vi.fn(), createMonitor: vi.fn() }));
+const { overviewFn, createMonitor, auth } = vi.hoisted(() => ({ overviewFn: vi.fn(), createMonitor: vi.fn(), auth: { demo: false } }));
+vi.mock('../auth', () => ({ useAuth: () => ({ demo: auth.demo }) }));
 vi.mock('../api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../api')>()),
   api: { overview: overviewFn, createMonitor },
@@ -26,6 +27,7 @@ function renderDashboard() {
 const card = (name: string) => screen.getByRole('link', { name }).closest('li') as HTMLElement;
 
 beforeEach(() => {
+  auth.demo = false;
   overviewFn.mockReset();
   createMonitor.mockReset();
 });
@@ -95,6 +97,24 @@ describe('DashboardPage', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Add monitor' }));
 
     expect(await screen.findByText('Monitor detail page')).toBeInTheDocument();
+  });
+});
+
+describe('DashboardPage in the read-only public demo', () => {
+  it('offers no way to add monitors', async () => {
+    auth.demo = true;
+    overviewFn.mockResolvedValue([overview()]);
+    renderDashboard();
+    expect(await screen.findByRole('heading', { name: 'All systems operational' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /add monitor/i })).not.toBeInTheDocument();
+  });
+
+  it('does not invite visitors to add a first monitor either', async () => {
+    auth.demo = true;
+    overviewFn.mockResolvedValue([]);
+    renderDashboard();
+    expect(await screen.findByRole('heading', { name: 'No monitors yet' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /add monitor/i })).not.toBeInTheDocument();
   });
 });
 

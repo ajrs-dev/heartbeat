@@ -4,7 +4,7 @@ import type { Config } from './config.js';
 import type { DB } from './db.js';
 import type { EventHub } from './events.js';
 
-type CheckFn = (url: string, timeoutMs: number, allowPrivate: boolean) => Promise<CheckResult>;
+type CheckFn = (url: string, timeoutMs: number, allowPrivate: boolean, allowedTargets: readonly string[]) => Promise<CheckResult>;
 
 /**
  * Runs due checks. A one-second tick asks the database which monitors are due, then runs them
@@ -52,7 +52,7 @@ export class Scheduler {
   private async execute(monitor: MonitorRow, startedAt: number): Promise<void> {
     this.inFlight.add(monitor.id);
     try {
-      const result = await this.check(monitor.url, monitor.timeout_ms, this.config.allowPrivateTargets);
+      const result = await this.check(monitor.url, monitor.timeout_ms, this.config.allowPrivateTargets, this.config.allowedTargets);
       recordCheck(this.db, monitor, result, startedAt);
       this.hub.emit(monitor.user_id, {
         type: 'check',

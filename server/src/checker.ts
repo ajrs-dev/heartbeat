@@ -39,10 +39,15 @@ function describeError(err: NodeJS.ErrnoException): string {
  * Redirects are deliberately not followed (see ssrf.ts), and a fresh connection is used each time
  * (`agent: false`) so the latency reflects a real connection rather than a reused socket.
  */
-export function runCheck(rawUrl: string, timeoutMs: number, allowPrivate: boolean): Promise<CheckResult> {
+export function runCheck(
+  rawUrl: string,
+  timeoutMs: number,
+  allowPrivate: boolean,
+  allowedTargets: readonly string[] = [],
+): Promise<CheckResult> {
   let url: URL;
   try {
-    url = parseTargetUrl(rawUrl, allowPrivate);
+    url = parseTargetUrl(rawUrl, allowPrivate, allowedTargets);
   } catch (err) {
     return Promise.resolve(failure((err as Error).message));
   }

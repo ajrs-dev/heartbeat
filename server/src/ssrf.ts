@@ -64,8 +64,14 @@ export function isBlockedAddress(raw: string): boolean {
   return true;
 }
 
-/** Validates and parses a monitor URL. Throws a 400 HttpError describing the problem. */
-export function parseTargetUrl(raw: string, allowPrivate: boolean): URL {
+/**
+ * Validates and parses a monitor URL. Throws a 400 HttpError describing the problem.
+ *
+ * `allowedTargets` is an exact allowlist of `host:port` pairs that bypass the private-address rules
+ * (the hosted demo uses it for its built-in targets). It matches the literal URL host only, so it
+ * can't be reached through DNS names, and everything else stays subject to the normal checks.
+ */
+export function parseTargetUrl(raw: string, allowPrivate: boolean, allowedTargets: readonly string[] = []): URL {
   let url: URL;
   try {
     url = new URL(raw);
@@ -78,6 +84,7 @@ export function parseTargetUrl(raw: string, allowPrivate: boolean): URL {
   if (url.username || url.password) {
     throw new HttpError(400, 'URLs with embedded credentials are not allowed');
   }
+  if (allowedTargets.includes(url.host)) return url;
   if (!allowPrivate) {
     const host = url.hostname.replace(/^\[|\]$/g, '');
     if (host === 'localhost' || host.endsWith('.localhost')) {

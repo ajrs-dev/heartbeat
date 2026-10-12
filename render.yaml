@@ -1,0 +1,22 @@
+# Render Blueprint for the public, read-only demo.
+# Deploy: https://render.com/deploy?repo=https://github.com/ajrs-dev/heartbeat
+#
+# This runs the normal Docker image with DEMO_MODE=true: sign-ups and changes are disabled, visitors
+# use a one-click demo login, and only the built-in local demo targets can be monitored (the SSRF
+# guard stays on for everything else). The free plan has no persistent disk, so the SQLite file is
+# recreated, with fresh generated history, on every start. That suits a demo.
+#
+# To run your own real instance instead, remove DEMO_MODE, switch to a paid plan, and attach a disk:
+#   disk: { name: heartbeat-data, mountPath: /data, sizeGB: 1 }
+services:
+  - type: web
+    name: heartbeat-demo
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: DEMO_MODE
+        value: "true"
+      - key: TRUST_PROXY # Render terminates TLS and forwards from one proxy
+        value: "1"

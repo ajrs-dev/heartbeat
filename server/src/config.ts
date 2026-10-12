@@ -2,6 +2,9 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+/** The built-in demo targets listen here (loopback only) and are the only private address demo mode may reach. */
+export const DEMO_TARGET_HOST = '127.0.0.1:4100';
+
 export interface Config {
   port: number;
   dbPath: string;
@@ -10,6 +13,10 @@ export interface Config {
   trustProxy: number;
   /** Lets monitors target private / loopback addresses. Off in production; on for tests and the demo. */
   allowPrivateTargets: boolean;
+  /** Exact host:port pairs that may be monitored even though they are private (used by the hosted demo). */
+  allowedTargets: string[];
+  /** Public read-only demo: no sign-ups, no changes, one-click demo login, built-in targets only. */
+  demoMode: boolean;
   sessionTtlMs: number;
   authRateLimit: { max: number; windowMs: number };
   retentionDays: number;
@@ -28,6 +35,8 @@ export function defaultConfig(): Config {
     production: false,
     trustProxy: 0,
     allowPrivateTargets: false,
+    allowedTargets: [],
+    demoMode: false,
     sessionTtlMs: 14 * 24 * 60 * 60 * 1000,
     authRateLimit: { max: 10, windowMs: 60_000 },
     retentionDays: 30,
@@ -46,6 +55,7 @@ function int(value: string | undefined, fallback: number): number {
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const base = defaultConfig();
+  const demoMode = env.DEMO_MODE === 'true';
   const here = path.dirname(fileURLToPath(import.meta.url));
   const builtWeb = path.resolve(here, '../../web/dist');
   return {
@@ -55,6 +65,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     production: env.NODE_ENV === 'production',
     trustProxy: int(env.TRUST_PROXY, base.trustProxy),
     allowPrivateTargets: env.ALLOW_PRIVATE_TARGETS === 'true',
+    demoMode,
+    allowedTargets: demoMode ? [DEMO_TARGET_HOST] : [],
     retentionDays: int(env.RETENTION_DAYS, base.retentionDays),
     minIntervalSec: int(env.MIN_INTERVAL_SEC, base.minIntervalSec),
     staticDir: existsSync(builtWeb) ? builtWeb : null,

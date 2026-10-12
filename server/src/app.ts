@@ -75,6 +75,10 @@ export function createApp(ctx: AppContext): express.Express {
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok', time: Date.now() });
   });
+  // Lets the web app adapt its UI (e.g. hide sign-up and edit controls) in the public demo.
+  app.get('/api/config', (_req, res) => {
+    res.json({ demoMode: ctx.config.demoMode });
+  });
   app.use('/api/auth', authRouter(ctx));
   app.use('/api/monitors', monitorsRouter(ctx));
   app.use('/api/events', eventsRouter(ctx));

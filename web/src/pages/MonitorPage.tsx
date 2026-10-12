@@ -5,6 +5,7 @@ import { LatencyChart } from '../components/LatencyChart';
 import { MonitorDialog } from '../components/MonitorDialog';
 import { StatusPill } from '../components/StatusPill';
 import { UptimeBar } from '../components/UptimeBar';
+import { useAuth } from '../auth';
 import { useLiveUpdates } from '../hooks/useLiveUpdates';
 import { useNow } from '../hooks/useNow';
 import { formatDuration, formatInterval, formatMs, formatUptime, timeAgo } from '../lib/format';
@@ -25,6 +26,7 @@ export function MonitorPage() {
   const id = Number(useParams().id);
   const navigate = useNavigate();
   const now = useNow();
+  const { demo } = useAuth();
 
   const [monitor, setMonitor] = useState<Monitor | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -122,6 +124,7 @@ export function MonitorPage() {
 
       {monitor.status === 'down' && monitor.lastError && <p className="banner bad">Currently failing: {monitor.lastError}</p>}
 
+      {!demo && (
       <div className="row actions">
         <button className="btn" onClick={() => void togglePause()}>
           {monitor.isPaused ? 'Resume' : 'Pause'}
@@ -144,6 +147,7 @@ export function MonitorPage() {
           </button>
         )}
       </div>
+      )}
 
       <section className="grid-3">
         {windows.map(({ label, s }) => (

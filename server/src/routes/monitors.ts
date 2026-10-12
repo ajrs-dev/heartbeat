@@ -77,6 +77,11 @@ export function monitorsRouter(ctx: AppContext): Router {
   const router = Router();
   const schemas = monitorSchemas(ctx.config.minIntervalSec);
   router.use(requireAuth(ctx.db));
+  // The public demo account is shared by every visitor, so it is read-only.
+  router.use((req, _res, next) => {
+    if (ctx.config.demoMode && req.method !== 'GET') throw new HttpError(403, 'The public demo is read-only');
+    next();
+  });
 
   /** Everything the dashboard needs in one round trip: each monitor with 24h stats and a mini timeline. */
   router.get('/overview', (req, res) => {
@@ -102,7 +107,7 @@ export function monitorsRouter(ctx: AppContext): Router {
     if (count >= ctx.config.maxMonitorsPerUser) {
       throw new HttpError(409, `You can have at most ${ctx.config.maxMonitorsPerUser} monitors`);
     }
-    const url = parseTargetUrl(body.url, ctx.config.allowPrivateTargets).toString();
+    const url = parseTargetUrl(body.url, ctx.config.allowPrivateTargets, ctx.config.allowedTargets).toString();
     const { id } = run(
       ctx.db,
       `INSERT INTO monitors (user_id, name, url, interval_sec, timeout_ms, is_public, created_at)
@@ -125,7 +130,7 @@ export function monitorsRouter(ctx: AppContext): Router {
   router.patch('/:id', (req, res) => {
     const monitor = findOwned(ctx.db, req.user!.id, req.params.id);
     const body = schemas.update.parse(req.body);
-    const url = body.url === undefined ? monitor.url : parseTargetUrl(body.url, ctx.config.allowPrivateTargets).toString();
+    const url = body.url === undefined ? monitor.url : parseTargetUrl(body.url, ctx.config.allowPrivateTargets, ctx.config.allowedTargets).toString();
     run(
       ctx.db,
       `UPDATE monitors SET name = ?, url = ?, interval_sec = ?, timeout_ms = ?, is_public = ?, is_paused = ? WHERE id = ?`,

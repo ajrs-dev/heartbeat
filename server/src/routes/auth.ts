@@ -12,6 +12,7 @@ import {
 } from '../auth.js';
 import type { AppContext } from '../context.js';
 import { get, run } from '../db.js';
+import { DEMO_SLUG } from '../demoData.js';
 import { HttpError } from '../errors.js';
 import { createRateLimiter } from '../rateLimit.js';
 
@@ -46,6 +47,7 @@ export function authRouter(ctx: AppContext): Router {
   }
 
   router.post('/register', limiter, async (req, res) => {
+    if (ctx.config.demoMode) throw new HttpError(403, 'Sign-ups are disabled in the public demo');
     const body = registerSchema.parse(req.body);
     if (get(ctx.db, 'SELECT 1 AS x FROM users WHERE email = ?', body.email)) {
       throw new HttpError(409, 'An account with that email already exists');
@@ -70,6 +72,15 @@ export function authRouter(ctx: AppContext): Router {
     if (!user || !valid) throw new HttpError(401, 'Invalid email or password');
     startSession(res, user.id);
     res.json({ user: { id: user.id, email: user.email, slug: user.slug } });
+  });
+
+  /** One-click sign-in to the seeded demo account. Exists only when DEMO_MODE is on. */
+  router.post('/demo', limiter, (_req, res) => {
+    if (!ctx.config.demoMode) throw new HttpError(404, 'Not found');
+    const user = get<{ id: number; email: string; slug: string }>(ctx.db, 'SELECT id, email, slug FROM users WHERE slug = ?', DEMO_SLUG);
+    if (!user) throw new HttpError(503, 'The demo is still starting up. Try again in a moment.');
+    startSession(res, user.id);
+    res.json({ user });
   });
 
   router.post('/logout', (req, res) => {

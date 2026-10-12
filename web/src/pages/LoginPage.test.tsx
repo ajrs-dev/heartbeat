@@ -6,10 +6,16 @@ import { ApiError } from '../api';
 import { AuthProvider } from '../auth';
 import { LoginPage } from './LoginPage';
 
-const { me, login, register } = vi.hoisted(() => ({ me: vi.fn(), login: vi.fn(), register: vi.fn() }));
+const { me, login, register, config, demoLogin } = vi.hoisted(() => ({
+  me: vi.fn(),
+  login: vi.fn(),
+  register: vi.fn(),
+  config: vi.fn(),
+  demoLogin: vi.fn(),
+}));
 vi.mock('../api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../api')>()),
-  api: { me, login, register },
+  api: { me, login, register, config, demoLogin },
 }));
 
 function renderLogin() {
@@ -31,6 +37,8 @@ beforeEach(() => {
   me.mockReset().mockRejectedValue(new ApiError('Not signed in', 401));
   login.mockReset();
   register.mockReset();
+  demoLogin.mockReset();
+  config.mockReset().mockResolvedValue({ demoMode: false });
 });
 
 describe('LoginPage', () => {
@@ -91,5 +99,46 @@ describe('LoginPage', () => {
     me.mockResolvedValue(user);
     renderLogin();
     expect(await screen.findByText('Dashboard home')).toBeInTheDocument();
+  });
+
+  it('falls back to the normal form if the config cannot be fetched', async () => {
+    config.mockRejectedValue(new Error('network'));
+    renderLogin();
+    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
+  });
+
+  describe('in the read-only public demo', () => {
+    beforeEach(() => {
+      config.mockResolvedValue({ demoMode: true });
+    });
+
+    it('offers a one-click demo instead of a sign-in or sign-up form', async () => {
+      renderLogin();
+      expect(await screen.findByRole('heading', { name: 'Live demo' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Try the live demo' })).toBeInTheDocument();
+      expect(screen.queryByLabelText('Email')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /create an account/i })).not.toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /public status page/i })).toHaveAttribute('href', '/status/demo');
+    });
+
+    it('signs in with one click and goes to the dashboard', async () => {
+      demoLogin.mockResolvedValue(user);
+      const typist = userEvent.setup();
+      renderLogin();
+      await typist.click(await screen.findByRole('button', { name: 'Try the live demo' }));
+      expect(demoLogin).toHaveBeenCalledTimes(1);
+      expect(login).not.toHaveBeenCalled();
+      expect(await screen.findByText('Dashboard home')).toBeInTheDocument();
+    });
+
+    it('shows a message if the demo is not ready yet and lets the visitor retry', async () => {
+      demoLogin.mockRejectedValue(new ApiError('The demo is still starting up. Try again in a moment.', 503));
+      const typist = userEvent.setup();
+      renderLogin();
+      await typist.click(await screen.findByRole('button', { name: 'Try the live demo' }));
+      expect(await screen.findByRole('alert')).toHaveTextContent('still starting up');
+      expect(screen.getByRole('button', { name: 'Try the live demo' })).toBeEnabled();
+    });
   });
 });

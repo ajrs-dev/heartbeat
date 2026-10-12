@@ -5,7 +5,7 @@ import { useAuth } from '../auth';
 import { Logo } from '../components/Layout';
 
 export function LoginPage() {
-  const { user, loading, signIn, signUp } = useAuth();
+  const { user, loading, demo, signIn, signUp, signInDemo } = useAuth();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -13,6 +13,17 @@ export function LoginPage() {
   const [busy, setBusy] = useState(false);
 
   if (!loading && user) return <Navigate to="/" replace />;
+
+  async function enterDemo() {
+    setError(null);
+    setBusy(true);
+    try {
+      await signInDemo();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Something went wrong');
+      setBusy(false);
+    }
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -24,6 +35,32 @@ export function LoginPage() {
       setError(err instanceof ApiError ? err.message : 'Something went wrong');
       setBusy(false);
     }
+  }
+
+  if (demo) {
+    return (
+      <div className="auth">
+        <div className="card stack auth-card">
+          <Logo />
+          <h1>Live demo</h1>
+          <p className="muted">
+            Explore a read-only Heartbeat account: five monitors, live checks against built-in test targets, incidents and a
+            public status page. Sign-ups and changes are turned off here.
+          </p>
+          {error && (
+            <p className="error" role="alert">
+              {error}
+            </p>
+          )}
+          <button className="btn primary" onClick={() => void enterDemo()} disabled={busy}>
+            {busy ? 'Opening demo…' : 'Try the live demo'}
+          </button>
+          <a className="btn link center" href="/status/demo">
+            Or view the public status page
+          </a>
+        </div>
+      </div>
+    );
   }
 
   return (

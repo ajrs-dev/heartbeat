@@ -58,6 +58,7 @@ NODE_ENV=production PORT=3001 DB_PATH=./data/heartbeat.db npm start
 | `NODE_ENV` | | `production` marks session cookies `Secure` |
 | `TRUST_PROXY` | `0` | Number of reverse proxies in front (so rate limiting sees real client IPs) |
 | `ALLOW_PRIVATE_TARGETS` | `false` | Allow monitors to target private/loopback addresses (development only) |
+| `DEMO_MODE` | `false` | Public read-only demo (see below) |
 | `RETENTION_DAYS` | `30` | How long raw checks are kept |
 | `MIN_INTERVAL_SEC` | `30` | Shortest allowed check interval |
 
@@ -95,15 +96,25 @@ React SPA ──HTTP/JSON──▶ Express API ──▶ SQLite (WAL)
 - **Checks measure time to response headers**, not full download time, and treat 2xx/3xx as up. Custom expected status codes and body assertions are natural extensions.
 - **Test coverage gaps:** the React tests run in jsdom against a stubbed API and a fake `EventSource`, so there are no real-browser end-to-end tests (Playwright would be the next addition). The Docker image was built and smoke-tested locally (Docker 29, Linux containers: health check, UI and SPA routing, SSRF refusal, real outbound checks, data and sessions surviving a restart) and CI repeats the core of that on every push.
 
+## Public demo (`DEMO_MODE=true`)
+
+Heartbeat makes outbound requests to URLs that users choose, so putting an open instance on the internet would let strangers use your server to send requests. The hosted demo therefore runs in a restricted mode:
+
+- **Read-only.** Sign-ups are disabled and monitors can't be created, changed or deleted. Visitors use a one-click "Try the live demo" login for a seeded account (its password is random and never revealed).
+- **Only built-in targets.** The demo starts a small local server with deliberately flaky endpoints, and monitors may only target that exact `host:port`. The SSRF guard stays on for everything else (the allowlist matches the literal URL host, so it can't be reached through a DNS name).
+- **Honest data.** History older than a few minutes is generated at startup; checks after that are real requests to the local targets. The UI says so.
+
+[Deploy to Render](https://render.com/deploy?repo=https://github.com/ajrs-dev/heartbeat) uses `render.yaml` (free plan, Docker). Notes for the free tier: an idle service sleeps after about 15 minutes and takes a short while to wake, no checks run while it sleeps, and there is no persistent disk, so the database and its generated history are recreated on each start. To run your own real instance, drop `DEMO_MODE`, use a paid plan and attach a disk at `/data`.
+
 ## Project layout
 
 ```
 server/
   src/        app.ts, scheduler.ts, checker.ts, ssrf.ts, checks.ts, stats.ts, auth.ts, routes/, demo.ts
-  test/       107 tests: SSRF rules, connect-time hostname resolution (incl. DNS rebinding), auth, ownership isolation,
-              stats maths, incidents, checker, scheduler, SSE streaming, static serving
+  test/       122 tests: SSRF rules, connect-time hostname resolution (incl. DNS rebinding), auth, ownership isolation,
+              stats maths, incidents, checker, scheduler, SSE streaming, static serving, demo mode
 web/
-  src/        pages/, components/, hooks/, lib/format.ts; 58 tests (Testing Library): pages, dialog, charts, live updates
+  src/        pages/, components/, hooks/, lib/format.ts; 67 tests (Testing Library): pages, dialog, charts, live updates, demo mode
 ```
 
 ## Scripts

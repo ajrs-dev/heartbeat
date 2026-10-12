@@ -14,7 +14,7 @@ export function Logo() {
 }
 
 export function Layout() {
-  const { user, signOut } = useAuth();
+  const { user, demo, signOut } = useAuth();
   return (
     <>
       <header className="topbar">
@@ -37,6 +37,12 @@ export function Layout() {
           </nav>
         </div>
       </header>
+      {demo && (
+        <div className="demo-banner">
+          Read-only demo. History older than a few minutes is generated; new checks are real requests to built-in test targets.{' '}
+          <a href="https://github.com/ajrs-dev/heartbeat">Source on GitHub</a>
+        </div>
+      )}
       <main className="container">
         <Outlet />
       </main>
