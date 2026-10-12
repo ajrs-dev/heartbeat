@@ -34,6 +34,8 @@ docker compose up --build
 
 The container starts with a fresh, empty database: create an account in the UI, then add monitors.
 
+In production mode session cookies are marked `Secure`, so the app must be served over HTTPS (browsers treat `http://localhost` as secure, so local use works). Put it behind a TLS-terminating reverse proxy or platform load balancer, and set `TRUST_PROXY=1`.
+
 Development with hot reload (API on :3001, UI on :5173):
 
 ```bash
@@ -89,7 +91,7 @@ React SPA ──HTTP/JSON──▶ Express API ──▶ SQLite (WAL)
 - **SQLite.** Fast and zero-ops for this workload, with one writer. A higher write volume would move checks to Postgres (ideally a time-series table with partitioning); the access patterns (`monitor_id, checked_at` range scans) are already index-friendly.
 - **Percentiles are computed in application code** from the sorted latencies of one window (about 2,900 rows at the shortest interval over 24 h). Pre-aggregated rollups would be the next step for long windows.
 - **Checks measure time to response headers**, not full download time, and treat 2xx/3xx as up. Custom expected status codes and body assertions are natural extensions.
-- **Test coverage gaps:** the React tests run in jsdom against a stubbed API and a fake `EventSource`, so there are no real-browser end-to-end tests (Playwright would be the next addition). The Docker image is built and smoke-tested in CI; I wrote it without a local Docker install, so that CI job is its first real run.
+- **Test coverage gaps:** the React tests run in jsdom against a stubbed API and a fake `EventSource`, so there are no real-browser end-to-end tests (Playwright would be the next addition). The Docker image was built and smoke-tested locally (Docker 29, Linux containers: health check, UI and SPA routing, SSRF refusal, real outbound checks, data and sessions surviving a restart) and CI repeats the core of that on every push.
 
 ## Project layout
 
