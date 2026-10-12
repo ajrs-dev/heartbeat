@@ -6,6 +6,8 @@ Built as a full-stack TypeScript project: **React + Vite** front end, **Express 
 
 [![CI](https://github.com/ajrs-dev/heartbeat/actions/workflows/ci.yml/badge.svg)](https://github.com/ajrs-dev/heartbeat/actions/workflows/ci.yml)
 
+**Live demo: [heartbeat-demo-ntod.onrender.com](https://heartbeat-demo-ntod.onrender.com)** (read-only, with one-click sign-in). It runs on a free Render instance that sleeps when idle, so the first load can take up to a minute.
+
 ## Features
 
 - **Scheduled checks** with per-monitor interval (30 s to 1 h) and timeout, bounded concurrency, and no duplicate in-flight checks.
