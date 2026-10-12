@@ -4,6 +4,8 @@ Uptime and latency monitoring. Add a URL and Heartbeat checks it on a schedule, 
 
 Built as a full-stack TypeScript project: **React + Vite** front end, **Express + SQLite** back end, deployed as a single Node process.
 
+[![CI](https://github.com/ajrs-dev/heartbeat/actions/workflows/ci.yml/badge.svg)](https://github.com/ajrs-dev/heartbeat/actions/workflows/ci.yml)
+
 ## Features
 
 - **Scheduled checks** with per-monitor interval (30 s to 1 h) and timeout, bounded concurrency, and no duplicate in-flight checks.
