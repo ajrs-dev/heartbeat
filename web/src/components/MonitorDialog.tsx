@@ -40,9 +40,15 @@ export function MonitorDialog({ monitor, onClose, onSaved }: Props) {
   }
 
   return (
-    <dialog ref={dialog} className="dialog" onClose={onClose} onClick={(e) => e.target === dialog.current && dialog.current?.close()}>
+    <dialog
+      ref={dialog}
+      className="dialog"
+      aria-labelledby="monitor-dialog-title"
+      onClose={onClose}
+      onClick={(e) => e.target === dialog.current && dialog.current?.close()}
+    >
       <form onSubmit={submit} className="stack">
-        <h2>{monitor ? 'Edit monitor' : 'Add monitor'}</h2>
+        <h2 id="monitor-dialog-title">{monitor ? 'Edit monitor' : 'Add monitor'}</h2>
 
         <label>
           Name

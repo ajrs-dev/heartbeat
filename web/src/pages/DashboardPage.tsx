@@ -54,7 +54,9 @@ export function DashboardPage() {
     monitors.length === 0
       ? 'No monitors yet'
       : down > 0
-        ? `${down} of ${active.length} ${down === 1 ? 'monitor is' : 'monitors are'} down`
+        ? down === 1
+          ? '1 monitor is down'
+          : `${down} monitors are down`
         : active.length > 0 && active.every((m) => m.status === 'up')
           ? 'All systems operational'
           : 'Waiting for first checks';

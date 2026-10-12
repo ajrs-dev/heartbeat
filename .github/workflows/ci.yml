@@ -18,3 +18,30 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t heartbeat .
+      - name: Smoke test the container
+        run: |
+          docker run -d --name hb -p 3001:3001 heartbeat
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:3001/api/health; then
+              echo
+              curl -fsS -o /dev/null http://localhost:3001/ && echo "UI served"
+              # The container must refuse to monitor internal addresses by default.
+              curl -sS -c jar -H 'Content-Type: application/json' \
+                -d '{"email":"ci@example.com","password":"ci-smoke-password"}' \
+                http://localhost:3001/api/auth/register -o /dev/null
+              code=$(curl -sS -b jar -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' \
+                -d '{"name":"x","url":"http://169.254.169.254/"}' http://localhost:3001/api/monitors)
+              test "$code" = "400" && echo "SSRF guard active" && exit 0
+              echo "expected 400 from the SSRF guard, got $code"; docker logs hb; exit 1
+            fi
+            sleep 1
+          done
+          docker logs hb
+          exit 1

@@ -1,0 +1,14 @@
+node_modules
+**/node_modules
+**/dist
+data
+*.db
+*.db-wal
+*.db-shm
+.git
+.github
+.env
+coverage
+Dockerfile
+docker-compose.yml
+README.md

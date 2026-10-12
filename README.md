@@ -25,6 +25,15 @@ npm run demo
 
 Then open http://localhost:3001. The demo account's credentials are printed in the terminal. The demo starts a local target server with deliberately flaky endpoints, seeds 36 hours of **generated** history so the charts are populated, and then runs real checks against the local targets. The public page is at `/status/demo`.
 
+With Docker (a multi-stage image: production dependencies only, runs as the unprivileged `node` user, data on a volume):
+
+```bash
+docker compose up --build
+# or: docker build -t heartbeat . && docker run -p 3001:3001 -v heartbeat-data:/data heartbeat
+```
+
+The container starts with a fresh, empty database: create an account in the UI, then add monitors.
+
 Development with hot reload (API on :3001, UI on :5173):
 
 ```bash
@@ -80,16 +89,17 @@ React SPA ──HTTP/JSON──▶ Express API ──▶ SQLite (WAL)
 - **SQLite.** Fast and zero-ops for this workload, with one writer. A higher write volume would move checks to Postgres (ideally a time-series table with partitioning); the access patterns (`monitor_id, checked_at` range scans) are already index-friendly.
 - **Percentiles are computed in application code** from the sorted latencies of one window (about 2,900 rows at the shortest interval over 24 h). Pre-aggregated rollups would be the next step for long windows.
 - **Checks measure time to response headers**, not full download time, and treat 2xx/3xx as up. Custom expected status codes and body assertions are natural extensions.
-- **Not covered by tests:** the React components (only the formatting helpers have unit tests), and the end-to-end SSE stream. I verified those by running the demo in a browser.
+- **Test coverage gaps:** the React tests run in jsdom against a stubbed API and a fake `EventSource`, so there are no real-browser end-to-end tests (Playwright would be the next addition). The Docker image is built and smoke-tested in CI; I wrote it without a local Docker install, so that CI job is its first real run.
 
 ## Project layout
 
 ```
 server/
   src/        app.ts, scheduler.ts, checker.ts, ssrf.ts, checks.ts, stats.ts, auth.ts, routes/, demo.ts
-  test/       80 tests: SSRF rules, auth, ownership isolation, stats maths, incidents, checker, scheduler
+  test/       107 tests: SSRF rules, connect-time hostname resolution (incl. DNS rebinding), auth, ownership isolation,
+              stats maths, incidents, checker, scheduler, SSE streaming, static serving
 web/
-  src/        pages/, components/, hooks/, lib/format.ts (+ tests)
+  src/        pages/, components/, hooks/, lib/format.ts; 58 tests (Testing Library): pages, dialog, charts, live updates
 ```
 
 ## Scripts

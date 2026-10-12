@@ -10,5 +10,9 @@ export default defineConfig({
     proxy: { '/api': 'http://localhost:3001' },
   },
   build: { outDir: 'dist', sourcemap: true },
-  test: { environment: 'node', include: ['src/**/*.test.ts'] },
+  test: {
+    environment: 'jsdom',
+    include: ['src/**/*.test.{ts,tsx}'],
+    setupFiles: ['./src/test/setup.ts'],
+  },
 });

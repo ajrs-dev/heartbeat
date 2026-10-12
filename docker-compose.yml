@@ -1,0 +1,15 @@
+services:
+  heartbeat:
+    build: .
+    ports:
+      - "3001:3001"
+    environment:
+      # Set to 1 when running behind a reverse proxy (nginx, Caddy, a cloud load balancer) so rate
+      # limiting sees real client IPs instead of the proxy's address.
+      TRUST_PROXY: "0"
+    volumes:
+      - heartbeat-data:/data
+    restart: unless-stopped
+
+volumes:
+  heartbeat-data:
